@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  validate:
+    name: Validate admin application
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: requirements-ci.txt
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install -r requirements-ci.txt
+
+      - name: Validate Python syntax
+        run: python -m compileall -q launcher.pyw version.py domain helper service ui
+
+      - name: Validate admin imports
+        run: |
+          python - <<'PY'
+          import importlib
+
+          modules = (
+              "version",
+              "domain.catalog_admin",
+              "helper.ad_form_mapper",
+              "helper.ad_helper",
+              "helper.system_helper",
+              "service.property_repository_service",
+              "ui.admin.admin_window",
+              "ui.admin.form_state",
+              "ui.launcher.launcher_window",
+          )
+          for module in modules:
+              importlib.import_module(module)
+              print(f"Imported {module}")
+          PY
+
+      - name: Test property and media persistence
+        run: python -m unittest discover -s tests -v
+
+      - name: Smoke-test PyInstaller build
+        run: |
+          pyinstaller --noconfirm --clean --onefile \
+            --name INKAZA \
+            --collect-all ttkbootstrap \
+            launcher.pyw
+          test -f dist/INKAZA
