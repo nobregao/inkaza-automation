@@ -1,0 +1,5 @@
+ttkbootstrap==1.10.1
+playwright==1.41.2
+requests
+pillow
+pyinstaller
