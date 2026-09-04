@@ -12,6 +12,7 @@ from version import __version__
 class LauncherWindow(ttk.Window):
     def __init__(self):
         super().__init__(themename="flatly")
+        self.child_process = None
         self._configure_window()
         self._build_ui()
 
@@ -47,16 +48,33 @@ class LauncherWindow(ttk.Window):
         ).pack(fill="x", ipady=9)
 
     def _open(self, target: str):
-        subprocess.Popen(self._build_command(target))
-        self.destroy()
+        if self.child_process is not None:
+            return
+
+        self.withdraw()
+        try:
+            self.child_process = subprocess.Popen(self._build_command(target))
+        except OSError:
+            self.deiconify()
+            raise
+        self.after(250, self._wait_for_child)
+
+    def _wait_for_child(self):
+        if self.child_process is not None and self.child_process.poll() is None:
+            self.after(250, self._wait_for_child)
+            return
+
+        self.child_process = None
+        self.deiconify()
+        bring_to_front(self)
 
     @staticmethod
     def _build_command(target: str) -> list[str]:
         if getattr(sys, "frozen", False):
-            return [sys.executable, target]
+            return [sys.executable, target, "--parent-launcher"]
 
         launcher_path = Path(__file__).resolve().parents[2] / "launcher.pyw"
-        return [sys.executable, str(launcher_path), target]
+        return [sys.executable, str(launcher_path), target, "--parent-launcher"]
 
 
 def main():

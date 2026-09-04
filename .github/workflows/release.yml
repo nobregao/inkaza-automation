@@ -115,7 +115,7 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
-          pyinstaller --noconfirm --clean --windowed --onefile \
+          pyinstaller --noconfirm --clean --windowed --onedir \
             --name INKAZA \
             --icon assets/icon.png \
             --collect-all ttkbootstrap \
@@ -138,7 +138,7 @@ jobs:
         shell: pwsh
         run: |
           $name = "INKAZA-v${{ needs.prepare.outputs.version }}-windows-x64.zip"
-          Compress-Archive -Path "dist\INKAZA.exe" -DestinationPath $name -Force
+          Compress-Archive -Path "dist\INKAZA" -DestinationPath $name -Force
 
       - name: Package macOS application
         if: runner.os == 'macOS'

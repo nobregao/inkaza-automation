@@ -67,6 +67,10 @@ A opção `all` gera os seguintes arquivos:
 - `INKAZA-vX.Y.Z-macos-x64.zip`, para Macs Intel;
 - `INKAZA-vX.Y.Z-macos-arm64.zip`, para Macs Apple Silicon.
 
+No Windows, extraia todo o conteúdo do ZIP e execute `INKAZA/INKAZA.exe`. Os
+arquivos que acompanham o executável na pasta `INKAZA` são necessários para o
+funcionamento da aplicação.
+
 Ao concluir, os pacotes ficam disponíveis tanto nos artefatos da execução quanto
 na pré-release criada na seção **Releases** do repositório.
 

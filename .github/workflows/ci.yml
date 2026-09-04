@@ -63,8 +63,8 @@ jobs:
 
       - name: Smoke-test PyInstaller build
         run: |
-          pyinstaller --noconfirm --clean --onefile \
+          pyinstaller --noconfirm --clean --onedir \
             --name INKAZA \
             --collect-all ttkbootstrap \
             launcher.pyw
-          test -f dist/INKAZA
+          test -f dist/INKAZA/INKAZA

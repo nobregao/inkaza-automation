@@ -158,6 +158,10 @@ class AdminWindow(ttk.Window):
             ).place(relx=0.5, rely=0.5, anchor="center")
 
     def return_to_launcher(self):
+        if "--parent-launcher" in sys.argv:
+            self.destroy()
+            return
+
         if getattr(sys, "frozen", False):
             command = [sys.executable]
         else:
