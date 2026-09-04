@@ -57,9 +57,18 @@ A pipeline `CI` é executada em pushes para `main` e em pull requests. Ela:
 
 No GitHub, acesse **Actions → Release INKAZA → Run workflow** e informe:
 
-- `version`: versão sem o prefixo `v`, por exemplo `0.0.1`;
 - `target`: `all`, `windows` ou `macos`;
 - `prerelease`: mantenha marcado para entregas de homologação.
+
+A versão é calculada automaticamente a partir da maior tag `vX.Y.Z` e dos
+commits posteriores, seguindo Conventional Commits:
+
+- `fix:` incrementa patch (`0.0.1` → `0.0.2`);
+- `feat:` incrementa minor (`0.0.2` → `0.1.0`);
+- `BREAKING CHANGE:` ou `feat!:` incrementa major (`0.1.0` → `1.0.0`).
+
+Quando há commits de tipos diferentes, prevalece o de maior impacto. A release é
+interrompida se nenhum commit posterior à última tag usar um desses formatos.
 
 A opção `all` gera os seguintes arquivos:
 

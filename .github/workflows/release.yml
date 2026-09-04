@@ -3,11 +3,6 @@ name: Release INKAZA
 on:
   workflow_dispatch:
     inputs:
-      version:
-        description: "Versão da entrega (ex.: 0.0.1)"
-        required: true
-        default: "0.0.1"
-        type: string
       target:
         description: "Sistemas para os quais gerar executáveis"
         required: true
@@ -40,17 +35,19 @@ jobs:
       version: ${{ steps.version.outputs.version }}
 
     steps:
-      - name: Validate version
+      - name: Checkout complete history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Calculate next version
         id: version
-        env:
-          INPUT_VERSION: ${{ inputs.version }}
-        run: |
-          if [[ ! "$INPUT_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-            echo "Versão inválida: $INPUT_VERSION" >&2
-            exit 1
-          fi
-          echo "version=$INPUT_VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v$INPUT_VERSION" >> "$GITHUB_OUTPUT"
+        run: python scripts/calculate_release_version.py
 
       - name: Select build matrix
         id: matrix
