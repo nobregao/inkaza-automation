@@ -69,6 +69,9 @@ commits posteriores, seguindo Conventional Commits:
 
 Quando há commits de tipos diferentes, prevalece o de maior impacto. A release é
 interrompida se nenhum commit posterior à última tag usar um desses formatos.
+Depois de calcular a versão, a pipeline atualiza `version.py`, cria automaticamente
+um commit `chore(release)` na branch `main` e usa esse mesmo commit para gerar os
+executáveis e a tag da release.
 
 A opção `all` gera os seguintes arquivos:
 
