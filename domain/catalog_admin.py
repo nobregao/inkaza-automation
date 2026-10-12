@@ -34,14 +34,55 @@ CATEGORIAS_DETALHES = [
     "Condo",
     "House",
     "Plote",
-    "Apartment",
+    "Apartament",
     "Penthouse",
     "Commercial",
     "Farm",
     "New Property",
+    "Transfer",
 ]
 
-DURACOES_PRECO = ["Diário", "Semanal", "Mensal", "Anual"]
+DURACOES_PRECO = ["Diariamente", "Mensalmente", "Anualmente", "Trimestralmente"]
+
+INSTALACOES_POR_CATEGORIA = {
+    "Condo": (
+        "piscina", "wifi", "elevadores", "fitness", "cctv",
+        "ar_condicionado", "seguranca", "estacionamento", "area",
+        "recepcao", "garagem", "extras",
+    ),
+    "House": (
+        "piscina", "wifi", "ar_condicionado", "area", "garagem",
+        "cozinha", "banheiros", "quartos",
+    ),
+    "Plote": ("area",),
+    "Apartment": ("area", "garagem", "banheiros", "quartos"),
+    "Apartament": ("area", "garagem", "banheiros", "quartos"),
+    "Penthouse": (
+        "piscina", "wifi", "elevadores", "fitness", "cctv",
+        "ar_condicionado", "seguranca", "estacionamento", "area",
+        "recepcao", "garagem", "sacadas", "extras",
+    ),
+    "Commercial": ("area", "garagem", "banheiros"),
+    "Farm": (
+        "wifi", "cctv", "ar_condicionado", "seguranca",
+        "estacionamento", "recepcao", "garagem",
+    ),
+    "New Property": ("area", "garagem", "banheiros", "quartos"),
+    "Transfer": ("area", "garagem", "banheiros", "quartos"),
+}
+
+INSTALACOES_OBRIGATORIAS_POR_CATEGORIA = {
+    "Condo": {"area", "garagem"},
+    "House": {"area", "garagem", "banheiros", "quartos"},
+    "Plote": {"area"},
+    "Apartment": {"area", "garagem", "banheiros", "quartos"},
+    "Apartament": {"area", "garagem", "banheiros", "quartos"},
+    "Penthouse": {"area", "garagem"},
+    "Commercial": {"area", "garagem", "banheiros"},
+    "Farm": {"garagem"},
+    "New Property": {"area", "garagem", "banheiros", "quartos"},
+    "Transfer": {"area", "garagem", "banheiros", "quartos"},
+}
 
 LUGARES_PROXIMOS = [
     "Mall",

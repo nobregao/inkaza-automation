@@ -10,6 +10,7 @@ from helper.system_helper import get_inkaza_data_dir
 
 
 class PropertyRepositoryService:
+    VALID_STATUSES = {"NOT_SYNC", "SYNC"}
     FILE_FIELDS = {
         "SEO_IMAGE": ("seo_image", False),
         "TITLE_IMAGE": ("imagem_titulo", False),
@@ -46,7 +47,7 @@ class PropertyRepositoryService:
         with self._connect() as connection:
             connection.execute(
                 """
-                CREATE TABLE IF NOT EXISTS properties (
+                CREATE TABLE IF NOT EXISTS property (
                     id TEXT PRIMARY KEY,
                     title TEXT NOT NULL,
                     slug TEXT NOT NULL,
@@ -75,7 +76,7 @@ class PropertyRepositoryService:
                     mime_type TEXT NOT NULL,
                     size_bytes INTEGER NOT NULL,
                     created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (property_id) REFERENCES properties(id) ON DELETE CASCADE
+                    FOREIGN KEY (property_id) REFERENCES property(id) ON DELETE CASCADE
                 )
                 """
             )
@@ -84,7 +85,7 @@ class PropertyRepositoryService:
     def _add_missing_columns(connection):
         existing_columns = {
             row["name"]
-            for row in connection.execute("PRAGMA table_info(properties)").fetchall()
+            for row in connection.execute("PRAGMA table_info(property)").fetchall()
         }
         migrations = {
             "address": "TEXT NOT NULL DEFAULT ''",
@@ -95,19 +96,19 @@ class PropertyRepositoryService:
         for column, definition in migrations.items():
             if column not in existing_columns:
                 connection.execute(
-                    f"ALTER TABLE properties ADD COLUMN {column} {definition}"
+                    f"ALTER TABLE property ADD COLUMN {column} {definition}"
                 )
 
     @staticmethod
     def _migrate_uuid_ids(connection):
-        columns = connection.execute("PRAGMA table_info(properties)").fetchall()
+        columns = connection.execute("PRAGMA table_info(property)").fetchall()
         id_column = next(row for row in columns if row["name"] == "id")
         if str(id_column["type"]).upper() == "TEXT":
             return
 
         connection.execute(
             """
-            CREATE TABLE properties_uuid (
+            CREATE TABLE property_uuid (
                 id TEXT PRIMARY KEY,
                 title TEXT NOT NULL,
                 slug TEXT NOT NULL,
@@ -121,11 +122,11 @@ class PropertyRepositoryService:
             )
             """
         )
-        rows = connection.execute("SELECT * FROM properties").fetchall()
+        rows = connection.execute("SELECT * FROM property").fetchall()
         for row in rows:
             connection.execute(
                 """
-                INSERT INTO properties_uuid (
+                INSERT INTO property_uuid (
                     id, title, slug, address, category, property_type,
                     status, data_json, created_at, updated_at
                 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -143,15 +144,15 @@ class PropertyRepositoryService:
                     row["updated_at"],
                 ),
             )
-        connection.execute("DROP TABLE properties")
-        connection.execute("ALTER TABLE properties_uuid RENAME TO properties")
+        connection.execute("DROP TABLE property")
+        connection.execute("ALTER TABLE property_uuid RENAME TO property")
 
     @classmethod
     def _migrate_normalized_values(cls, connection):
         rows = connection.execute(
             """
             SELECT id, address, category, property_type, data_json
-              FROM properties
+              FROM property
             """
         ).fetchall()
         for row in rows:
@@ -170,7 +171,7 @@ class PropertyRepositoryService:
             )
             connection.execute(
                 """
-                UPDATE properties
+                UPDATE property
                    SET address = ?, category = ?, property_type = ?, data_json = ?
                  WHERE id = ?
                 """,
@@ -192,7 +193,7 @@ class PropertyRepositoryService:
                 property_id = str(uuid4())
                 connection.execute(
                     """
-                    INSERT INTO properties
+                    INSERT INTO property
                         (id, title, slug, address, category, property_type, status, data_json)
                     VALUES (?, ?, ?, ?, ?, ?, 'NOT_SYNC', ?)
                     """,
@@ -211,7 +212,7 @@ class PropertyRepositoryService:
 
             cursor = connection.execute(
                 """
-                UPDATE properties
+                UPDATE property
                    SET title = ?, slug = ?, address = ?, category = ?,
                        property_type = ?, status = 'NOT_SYNC', data_json = ?,
                        updated_at = CURRENT_TIMESTAMP
@@ -237,7 +238,7 @@ class PropertyRepositoryService:
             row = connection.execute(
                 """
                 SELECT data_json, address, category, property_type
-                  FROM properties
+                  FROM property
                  WHERE id = ?
                 """,
                 (property_id,),
@@ -286,13 +287,28 @@ class PropertyRepositoryService:
     def delete(self, property_id: str) -> None:
         with self._connect() as connection:
             cursor = connection.execute(
-                "DELETE FROM properties WHERE id = ?", (property_id,)
+                "DELETE FROM property WHERE id = ?", (property_id,)
             )
             if cursor.rowcount == 0:
                 raise ValueError(f"Propriedade {property_id} não encontrada")
         property_media_dir = self.media_dir / property_id
         if property_media_dir.exists():
             shutil.rmtree(property_media_dir)
+
+    def update_status(self, property_id: str, status: str) -> None:
+        if status not in self.VALID_STATUSES:
+            raise ValueError(f"Status de propriedade inválido: {status}")
+        with self._connect() as connection:
+            cursor = connection.execute(
+                """
+                UPDATE property
+                   SET status = ?, updated_at = CURRENT_TIMESTAMP
+                 WHERE id = ?
+                """,
+                (status, property_id),
+            )
+            if cursor.rowcount == 0:
+                raise ValueError(f"Propriedade {property_id} não encontrada")
 
     @staticmethod
     def _data_without_columns(data: dict) -> dict:
@@ -415,8 +431,24 @@ class PropertyRepositoryService:
                 """
                 SELECT id, title, slug, address, category, property_type, status,
                        created_at, updated_at
-                  FROM properties
+                  FROM property
                  ORDER BY updated_at DESC, id DESC
                 """
+            ).fetchall()
+        return [dict(row) for row in rows]
+
+    def list_by_status(self, status: str) -> list[dict]:
+        if status not in self.VALID_STATUSES:
+            raise ValueError(f"Status de propriedade inválido: {status}")
+        with self._connect() as connection:
+            rows = connection.execute(
+                """
+                SELECT id, title, slug, address, category, property_type, status,
+                       created_at, updated_at
+                  FROM property
+                 WHERE status = ?
+                 ORDER BY updated_at, id
+                """,
+                (status,),
             ).fetchall()
         return [dict(row) for row in rows]

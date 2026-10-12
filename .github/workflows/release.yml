@@ -131,6 +131,7 @@ jobs:
             --name INKAZA \
             --icon assets/icon.png \
             --collect-all ttkbootstrap \
+            --collect-all playwright \
             launcher.pyw
 
       - name: Build macOS application
@@ -142,6 +143,7 @@ jobs:
             --icon assets/icon.png \
             --osx-bundle-identifier br.com.inkaza.automation \
             --collect-all ttkbootstrap \
+            --collect-all playwright \
             launcher.pyw
           codesign --force --deep --sign - dist/INKAZA.app
 

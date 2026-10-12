@@ -1,12 +1,10 @@
 from version import __version__
 from pathlib import Path
 import mimetypes
-import re
 import subprocess
 import sys
 import tkinter as tk
 from tkinter import filedialog, messagebox
-import unicodedata
 import ttkbootstrap as ttk
 from PIL import Image, ImageOps, ImageTk, UnidentifiedImageError
 from ttkbootstrap.constants import DANGER, INFO, SECONDARY, SUCCESS, DARK
@@ -22,6 +20,8 @@ from ui.admin.form_state import FormState
 from domain.catalog_admin import (
     CATEGORIAS_DETALHES,
     DURACOES_PRECO,
+    INSTALACOES_POR_CATEGORIA,
+    INSTALACOES_OBRIGATORIAS_POR_CATEGORIA,
     LUGARES_PROXIMOS,
 )
 
@@ -176,7 +176,10 @@ class AdminWindow(ttk.Window):
 
     @staticmethod
     def _status_label(status: str) -> str:
-        return {"NOT_SYNC": "Não sincronizado"}.get(status, status)
+        return {
+            "NOT_SYNC": "Não sincronizado",
+            "SYNC": "Sincronizado",
+        }.get(status, status)
 
     def _show_property_form(self, property_id: str | None = None):
         self._clear_screen()
@@ -276,9 +279,11 @@ class AdminWindow(ttk.Window):
         self._build_section_detalhes(row=0)
         self._build_section_seo(row=1)
         self._build_section_perto_lugares(row=2)
-        self._build_section_localizacao_inkaza(row=3)
-        self._build_section_imagens(row=4)
-        self._build_section_traducoes(row=5)
+        self._build_section_instalacoes(row=3)
+        self._build_section_localizacao_inkaza(row=4)
+        self._build_section_imagens(row=5)
+        self._build_section_video(row=6)
+        self._build_section_traducoes(row=7)
 
     def _build_section_detalhes(self, row: int):
         section = self._create_section(row, "Detalhes")
@@ -295,32 +300,18 @@ class AdminWindow(ttk.Window):
         ttk.Entry(section, textvariable=self.state.detalhes_titulo).grid(
             row=4, column=0, sticky="ew", pady=(6, 12)
         )
-        self.state.detalhes_titulo.trace_add("write", self._sync_detalhes_slug)
 
-        ttk.Label(section, text="LESMA").grid(row=5, column=0, sticky="w")
-        slug_entry = ttk.Entry(section, textvariable=self.state.detalhes_slug)
-        slug_entry.grid(row=6, column=0, sticky="ew", pady=(6, 2))
-        slug_entry.configure(
-            validate="key",
-            validatecommand=(self.register(self._validate_slug), "%P"),
-        )
-        ttk.Label(
-            section,
-            text="Somente letras sem acento, números e hífens são permitidos",
-            bootstyle="danger",
-        ).grid(row=7, column=0, sticky="w", pady=(0, 12))
-
-        ttk.Label(section, text="DESCRIÇÃO*").grid(row=8, column=0, sticky="w")
+        ttk.Label(section, text="DESCRIÇÃO*").grid(row=5, column=0, sticky="w")
         self.state.detalhes_descricao = tk.Text(section, height=7, wrap="word")
         self.state.detalhes_descricao.grid(
-            row=9, column=0, sticky="ew", pady=(6, 16)
+            row=6, column=0, sticky="ew", pady=(6, 16)
         )
 
         ttk.Label(section, text="TIPO DE PROPRIEDADE*").grid(
-            row=10, column=0, sticky="w", pady=(0, 6)
+            row=7, column=0, sticky="w", pady=(0, 6)
         )
         type_box = ttk.Frame(section)
-        type_box.grid(row=11, column=0, sticky="w", pady=(0, 14))
+        type_box.grid(row=8, column=0, sticky="w", pady=(0, 14))
         ttk.Radiobutton(
             type_box,
             text="Para vender",
@@ -346,9 +337,9 @@ class AdminWindow(ttk.Window):
             state="readonly",
         ).grid(row=1, column=0, sticky="ew", pady=(6, 12))
 
-        ttk.Label(section, text="PREÇO (R$)*").grid(row=14, column=0, sticky="w")
+        ttk.Label(section, text="PREÇO (R$)*").grid(row=11, column=0, sticky="w")
         price_entry = ttk.Entry(section, textvariable=self.state.detalhes_preco)
-        price_entry.grid(row=15, column=0, sticky="ew", pady=(6, 0))
+        price_entry.grid(row=12, column=0, sticky="ew", pady=(6, 0))
         price_entry.configure(
             validate="key",
             validatecommand=(self.register(self._validate_numeric), "%P"),
@@ -357,28 +348,15 @@ class AdminWindow(ttk.Window):
         self.state.detalhes_tipo.trace_add("write", self._toggle_detalhes_duracao)
         self._toggle_detalhes_duracao()
 
-    @staticmethod
-    def _validate_slug(value: str) -> bool:
-        return all(char.isascii() and (char.isalnum() or char == "-") for char in value)
-
     def _toggle_detalhes_duracao(self, *_):
         if self.state.detalhes_tipo.get() == "aluguel":
             if not self.state.detalhes_duracao_preco.get():
-                self.state.detalhes_duracao_preco.set("Mensal")
+                self.state.detalhes_duracao_preco.set("Mensalmente")
             self.detalhes_duracao_box.grid(
-                row=12, column=0, sticky="ew", pady=(0, 2)
+                row=9, column=0, sticky="ew", pady=(0, 2)
             )
         else:
             self.detalhes_duracao_box.grid_remove()
-
-    def _sync_detalhes_slug(self, *_):
-        title = self.state.detalhes_titulo.get().lower().strip()
-        normalized = unicodedata.normalize("NFKD", title)
-        without_accents = "".join(
-            char for char in normalized if not unicodedata.combining(char)
-        )
-        slug = re.sub(r"[^a-z0-9]+", "-", without_accents).strip("-")
-        self.state.detalhes_slug.set(slug)
 
     def _build_section_seo(self, row: int):
         section = self._create_section(row, "Detalhes de SEO")
@@ -592,6 +570,111 @@ class AdminWindow(ttk.Window):
         else:
             entry.grid_remove()
             label.grid_remove()
+    def _build_section_instalacoes(self, row: int):
+        section = self._create_section(row, "Instalações")
+        self.instalacoes_section = section
+        grid = ttk.Frame(section)
+        grid.grid(row=1, column=0, sticky="ew")
+        for column in range(4):
+            grid.columnconfigure(column, weight=1, uniform="instalacoes")
+
+        fields = (
+            ("piscina", "PISCINA", self.state.instalacoes_piscina, "number"),
+            ("wifi", "WIFI", self.state.instalacoes_wifi, "text"),
+            ("elevadores", "ELEVADORES", self.state.instalacoes_elevadores, "number"),
+            ("fitness", "FITNESS", self.state.instalacoes_fitness, "number"),
+            ("cctv", "CCTV", self.state.instalacoes_cctv, "text"),
+            ("ar_condicionado", "AR-CONDICIONADO", self.state.instalacoes_ar_condicionado, "text"),
+            ("seguranca", "SEGURANÇA", self.state.instalacoes_seguranca, "number"),
+            ("estacionamento", "ESTACIONAMENTO", self.state.instalacoes_estacionamento, "number"),
+            ("area", "ÁREA*", self.state.instalacoes_area, "number"),
+            ("recepcao", "RECEPÇÃO", self.state.instalacoes_recepcao, "number"),
+            ("cozinha", "COZINHA", self.state.instalacoes_cozinha, "number"),
+            ("sacadas", "SACADAS", self.state.instalacoes_sacadas, "number"),
+            ("garagem", "GARAGEM*", self.state.instalacoes_garagem, "number"),
+            ("banheiros", "BANHEIROS*", self.state.instalacoes_banheiros, "number"),
+            ("quartos", "QUARTOS*", self.state.instalacoes_quartos, "number"),
+            ("extras", "INSTALAÇÕES EXTRAS", None, "checkbox"),
+        )
+        self.instalacoes_field_boxes = {}
+        for index, (field_name, label, variable, field_type) in enumerate(fields):
+            item_row, item_column = divmod(index, 4)
+            box = ttk.Frame(grid)
+            box.grid(
+                row=item_row,
+                column=item_column,
+                sticky="new",
+                padx=(0 if item_column == 0 else 10, 0),
+                pady=(0, 12),
+            )
+            box.columnconfigure(0, weight=1)
+            self.instalacoes_field_boxes[field_name] = box
+            ttk.Label(box, text=label).grid(row=0, column=0, sticky="w")
+            if field_type == "checkbox":
+                options = ttk.Frame(box)
+                options.grid(row=1, column=0, sticky="w", pady=(6, 0))
+                ttk.Checkbutton(
+                    options, text="SPA", variable=self.state.instalacoes_spa
+                ).pack(side="left")
+                ttk.Checkbutton(
+                    options, text="Sauna", variable=self.state.instalacoes_sauna
+                ).pack(side="left", padx=(10, 0))
+                continue
+
+            entry = ttk.Entry(box, textvariable=variable)
+            if field_type == "number":
+                entry.configure(
+                    validate="key",
+                    validatecommand=(self.register(self._validate_numeric), "%P"),
+                )
+            entry.grid(row=1, column=0, sticky="ew", pady=(6, 0))
+
+        self._last_instalacoes_category = self.state.detalhes_categoria.get()
+        self.state.detalhes_categoria.trace_add(
+            "write", self._toggle_instalacoes
+        )
+        self._toggle_instalacoes()
+
+    def _clear_instalacoes(self):
+        for variable in (
+            self.state.instalacoes_piscina,
+            self.state.instalacoes_wifi,
+            self.state.instalacoes_elevadores,
+            self.state.instalacoes_fitness,
+            self.state.instalacoes_cctv,
+            self.state.instalacoes_ar_condicionado,
+            self.state.instalacoes_seguranca,
+            self.state.instalacoes_estacionamento,
+            self.state.instalacoes_area,
+            self.state.instalacoes_recepcao,
+            self.state.instalacoes_cozinha,
+            self.state.instalacoes_sacadas,
+            self.state.instalacoes_garagem,
+            self.state.instalacoes_banheiros,
+            self.state.instalacoes_quartos,
+        ):
+            variable.set("")
+        self.state.instalacoes_spa.set(False)
+        self.state.instalacoes_sauna.set(False)
+
+    def _toggle_instalacoes(self, *_):
+        category = self.state.detalhes_categoria.get()
+        if category != self._last_instalacoes_category:
+            self._clear_instalacoes()
+            self._last_instalacoes_category = category
+
+        active_fields = INSTALACOES_POR_CATEGORIA.get(category, ())
+        if not active_fields:
+            self.instalacoes_section.grid_remove()
+            return
+
+        self.instalacoes_section.grid()
+        for field_name, box in self.instalacoes_field_boxes.items():
+            if field_name in active_fields:
+                box.grid()
+            else:
+                box.grid_remove()
+
 
     def _build_section_localizacao_inkaza(self, row: int):
         section = self._create_section(row, "Localização")
@@ -692,13 +775,47 @@ class AdminWindow(ttk.Window):
             self.imagens_preview_boxes[kind] = preview_box
         self.image_preview_references = []
 
-        ttk.Label(section, text="LINK DO VÍDEO").grid(
-            row=2, column=0, sticky="w", pady=(18, 0)
-        )
-        ttk.Entry(section, textvariable=self.state.link_video).grid(
-            row=3, column=0, sticky="ew", pady=(6, 0)
-        )
         self._update_images_labels()
+
+    def _build_section_video(self, row: int):
+        section = self._create_section(row, "Vídeo")
+        fields = ttk.Frame(section)
+        fields.grid(row=1, column=0, sticky="ew")
+        fields.columnconfigure(0, weight=1, uniform="video")
+        fields.columnconfigure(1, weight=1, uniform="video")
+
+        type_box = ttk.Frame(fields)
+        type_box.grid(row=0, column=0, sticky="new", padx=(0, 10))
+        type_box.columnconfigure(0, weight=1)
+        ttk.Label(type_box, text="TIPO DE VÍDEO").grid(
+            row=0, column=0, sticky="w"
+        )
+        ttk.Combobox(
+            type_box,
+            textvariable=self.state.video_tipo,
+            values=("YouTube", "Vimeo"),
+            state="readonly",
+        ).grid(row=1, column=0, sticky="ew", pady=(6, 0))
+
+        self.video_link_box = ttk.Frame(fields)
+        self.video_link_box.columnconfigure(0, weight=1)
+        ttk.Label(self.video_link_box, text="LINK DO VÍDEO").grid(
+            row=0, column=0, sticky="w"
+        )
+        ttk.Entry(
+            self.video_link_box, textvariable=self.state.link_video
+        ).grid(row=1, column=0, sticky="ew", pady=(6, 0))
+        self.state.video_tipo.trace_add(
+            "write", lambda *_args: self._toggle_video_link()
+        )
+        self._toggle_video_link()
+
+    def _toggle_video_link(self):
+        if self.state.video_tipo.get():
+            self.video_link_box.grid(row=0, column=1, sticky="new", padx=(10, 0))
+        else:
+            self.state.link_video.set("")
+            self.video_link_box.grid_remove()
 
     def _select_image_section_files(self, kind: str):
         image_types = [("Imagens", ("*.jpg", "*.jpeg", "*.png", "*.webp"))]
@@ -904,6 +1021,64 @@ class AdminWindow(ttk.Window):
         )
 
 
+    @staticmethod
+    def _required_visible_fields(data: dict) -> list[str]:
+        details = data.get("detalhes", {})
+        location = data.get("localizacao", {})
+        images = data.get("imagens", {})
+        required = {
+            "Categoria": details.get("categoria"),
+            "Título": details.get("titulo"),
+            "Descrição": details.get("descricao"),
+            "Tipo de propriedade": details.get("tipo"),
+            "Preço": details.get("preco"),
+            "Cidade": location.get("cidade"),
+            "País": location.get("pais"),
+            "Estado": location.get("estado"),
+            "Endereço do cliente": location.get("endereco_cliente"),
+            "Endereço": location.get("endereco"),
+            "Imagem do título": images.get("imagem_titulo"),
+        }
+        if details.get("tipo") == "aluguel":
+            required["Duração por preço"] = details.get("duracao_preco")
+        return [label for label, value in required.items() if not value]
+
+    def _validate_instalacoes(self) -> bool:
+        category = self.state.detalhes_categoria.get()
+        active_fields = INSTALACOES_POR_CATEGORIA.get(category, ())
+        values = {
+            "piscina": self.state.instalacoes_piscina.get(),
+            "wifi": self.state.instalacoes_wifi.get(),
+            "elevadores": self.state.instalacoes_elevadores.get(),
+            "fitness": self.state.instalacoes_fitness.get(),
+            "cctv": self.state.instalacoes_cctv.get(),
+            "ar_condicionado": self.state.instalacoes_ar_condicionado.get(),
+            "seguranca": self.state.instalacoes_seguranca.get(),
+            "estacionamento": self.state.instalacoes_estacionamento.get(),
+            "area": self.state.instalacoes_area.get(),
+            "recepcao": self.state.instalacoes_recepcao.get(),
+            "cozinha": self.state.instalacoes_cozinha.get(),
+            "sacadas": self.state.instalacoes_sacadas.get(),
+            "garagem": self.state.instalacoes_garagem.get(),
+            "banheiros": self.state.instalacoes_banheiros.get(),
+            "quartos": self.state.instalacoes_quartos.get(),
+        }
+        required = INSTALACOES_OBRIGATORIAS_POR_CATEGORIA.get(category, set())
+        numeric = {
+            "piscina", "elevadores", "fitness", "seguranca",
+            "estacionamento", "area", "recepcao", "cozinha", "sacadas", "garagem",
+            "banheiros", "quartos",
+        }
+        for field in active_fields:
+            if field == "extras":
+                continue
+            value = values[field]
+            if field in required and (not value.isdigit() or int(value) < 1):
+                return False
+            if field in numeric and value and (not value.isdigit() or int(value) < 1):
+                return False
+        return True
+
     def _validate_numeric(self, value: str) -> bool:
         return value == "" or value.isdigit()
 
@@ -942,13 +1117,31 @@ class AdminWindow(ttk.Window):
                 lugar: {"selecionado": False, "distancia_km": ""}
                 for lugar in LUGARES_PROXIMOS
             },
+            "instalacoes": {
+                "piscina": "",
+                "wifi": "",
+                "elevadores": "",
+                "fitness": "",
+                "cctv": "",
+                "ar_condicionado": "",
+                "seguranca": "",
+                "estacionamento": "",
+                "area": "",
+                "recepcao": "",
+                "cozinha": "",
+                "sacadas": "",
+                "garagem": "",
+                "banheiros": "",
+                "quartos": "",
+                "extras": [],
+            },
             "imagens": {
                 "imagem_titulo": "",
                 "imagem_3d": "",
                 "galeria": [],
                 "documentos": [],
-                "link_video": "",
             },
+            "video": {"tipo": "", "link": ""},
             "traducoes": {
                 "portugues": {
                     "titulo": "",
@@ -1033,8 +1226,12 @@ class AdminWindow(ttk.Window):
     def save_property(self):
         try:
             data = self.ad_mapper.to_dict(self.state)
-            if not data.get("imagens", {}).get("imagem_titulo"):
-                toast_error("Selecione a imagem do título")
+            missing = self._required_visible_fields(data)
+            if missing:
+                toast_error("Preencha os campos obrigatórios: " + ", ".join(missing))
+                return
+            if not self._validate_instalacoes():
+                toast_error("Preencha as instalações com números maiores ou iguais a 1")
                 return
             property_id = self.property_repository.save(
                 data, self.current_property_id
@@ -1070,6 +1267,7 @@ class AdminWindow(ttk.Window):
 
 
     def _refresh_form_ui(self):
+        self._toggle_instalacoes()
         self._update_images_labels()
         self._limit_seo_text(
             self.state.seo_titulo, self.lbl_seo_titulo, "Recomendado: 55–60"

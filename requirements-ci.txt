@@ -1,3 +1,5 @@
 ttkbootstrap==1.10.1
 pillow
+playwright==1.41.2
 pyinstaller
+cryptography

@@ -35,9 +35,20 @@ Para gerar os executáveis do projeto:
 ```bash
 make release
 ```
-Esse comando gera um único aplicativo, **INKAZA**. Nesta primeira entrega, o
-fluxo de gerenciamento de propriedades está disponível e a publicação permanece
-desativada no launcher.
+Esse comando gera um único aplicativo, **INKAZA**. O fluxo de publicação abre o
+Google Chrome com uma sessão persistente e usa as credenciais salvas na aplicação
+quando a sessão da INKAZA expirar.
+
+## Testando o publicador
+
+Cadastre propriedades completas e clique em **Publicar Propriedade** no launcher.
+Informe o login e a senha uma vez; as credenciais são criptografadas antes de serem
+armazenadas no SQLite e são carregadas automaticamente nas próximas execuções.
+
+Ao clicar em **Publicar todas não sincronizadas**, a aplicação solicita uma única
+confirmação, reutiliza a mesma sessão do Chrome e publica sequencialmente todas as
+propriedades com status `NOT_SYNC`. Cada propriedade confirmada pela INKAZA passa
+para o status `SYNC`; erros são apresentados na tela e não interrompem as demais.
 
 Resultado esperado:
 

@@ -44,7 +44,7 @@ class LauncherWindow(ttk.Window):
             container,
             text="Publicar Propriedade",
             style=SUCCESS,
-            state="disabled",
+            command=lambda: self._open("--publisher"),
         ).pack(fill="x", ipady=9)
 
     def _open(self, target: str):

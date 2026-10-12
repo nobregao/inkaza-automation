@@ -11,13 +11,11 @@ class AdFormMapper:
             "detalhes": AdFormMapper._collect_detalhes(state),
             "seo": AdFormMapper._collect_seo(state),
             "perto_de_lugares": AdFormMapper._collect_perto_de_lugares(state),
+            "instalacoes": AdFormMapper._collect_instalacoes(state),
             "localizacao": AdFormMapper._collect_localizacao(state),
             "imagens": AdFormMapper._collect_imagens(state),
+            "video": AdFormMapper._collect_video(state),
             "traducoes": AdFormMapper._collect_traducoes(state),
-            "anuncio": AdFormMapper._collect_anuncio(state),
-            "imovel": AdFormMapper._collect_imovel(state),
-            "condominio": AdFormMapper._collect_condominio(state),
-            "negociacao": AdFormMapper._collect_negociacao(state),
         }
 
     @staticmethod
@@ -29,6 +27,34 @@ class AdFormMapper:
                     "1.0", "end-1c"
                 ).strip(),
             }
+        }
+
+    @staticmethod
+    def _collect_instalacoes(state: FormState) -> dict:
+        return {
+            "piscina": state.instalacoes_piscina.get().strip(),
+            "wifi": state.instalacoes_wifi.get().strip(),
+            "elevadores": state.instalacoes_elevadores.get().strip(),
+            "fitness": state.instalacoes_fitness.get().strip(),
+            "cctv": state.instalacoes_cctv.get().strip(),
+            "ar_condicionado": state.instalacoes_ar_condicionado.get().strip(),
+            "seguranca": state.instalacoes_seguranca.get().strip(),
+            "estacionamento": state.instalacoes_estacionamento.get().strip(),
+            "area": state.instalacoes_area.get().strip(),
+            "recepcao": state.instalacoes_recepcao.get().strip(),
+            "cozinha": state.instalacoes_cozinha.get().strip(),
+            "sacadas": state.instalacoes_sacadas.get().strip(),
+            "garagem": state.instalacoes_garagem.get().strip(),
+            "banheiros": state.instalacoes_banheiros.get().strip(),
+            "quartos": state.instalacoes_quartos.get().strip(),
+            "extras": [
+                name
+                for name, selected in (
+                    ("SPA", state.instalacoes_spa.get()),
+                    ("Sauna", state.instalacoes_sauna.get()),
+                )
+                if selected
+            ],
         }
 
     @staticmethod
@@ -50,7 +76,13 @@ class AdFormMapper:
             "imagem_3d": state.imagem_3d.get().strip(),
             "galeria": list(state.imagens_galeria),
             "documentos": list(state.documentos),
-            "link_video": state.link_video.get().strip(),
+        }
+
+    @staticmethod
+    def _collect_video(state: FormState) -> dict:
+        return {
+            "tipo": state.video_tipo.get().strip(),
+            "link": state.link_video.get().strip(),
         }
 
     @staticmethod
@@ -91,86 +123,18 @@ class AdFormMapper:
         }
 
     @staticmethod
-    def _collect_anuncio(state: FormState) -> dict:
-        return {
-            "ciclos": state.ciclos_anuncio.get(),
-            "repeticoes": state.repeticoes_anuncio.get(),
-            "codigo": state.codigo_anuncio.get().strip(),
-            "titulos": [
-                t.get().strip() for t in state.titulos_anuncio if t.get().strip()
-            ],
-            "descricao": state.descricao_anuncio.get("1.0", "end-1c").strip(),
-        }
-
-    @staticmethod
-    def _collect_imovel(state: FormState) -> dict:
-        return {
-            "finalidade": state.finalidade.get(),
-            "tipo": state.tipo.get(),
-            "categoria": state.categoria.get(),
-            "quartos": AdHelper.to_int(state.quartos.get()),
-            "suites": AdHelper.to_int(state.suites.get()),
-            "banheiros": AdHelper.to_int(state.banheiros.get()),
-            "vagas": AdHelper.to_int(state.vagas.get()),
-            "area_util_m2": state.area_util.get(),
-            "area_total_m2": state.area_total.get(),
-            "andar": AdHelper.to_int(state.andar.get()),
-            "localizacao": {
-                "cep": state.cep.get().strip(),
-                "bairro": state.bairro.get().strip(),
-                "endereco": state.endereco.get().strip(),
-                "numero": AdHelper.to_int(state.numero.get()),
-                "complemento": state.complemento.get().strip(),
-            },
-            "caracteristicas": {
-                "diferenciais": AdHelper.collect_checked(state.diferenciais),
-                "outras": AdHelper.collect_checked(state.outras_caracteristicas_imovel),
-            },
-        }
-
-    @staticmethod
-    def _collect_condominio(state: FormState) -> dict:
-        ano = str(state.cond_ano_construcao.get()).strip()
-
-        return {
-            "andares": AdHelper.to_int(state.cond_andares.get()),
-            "unidades_por_andar": AdHelper.to_int(state.cond_unidades_por_andar.get()),
-            "torres": AdHelper.to_int(state.cond_torres.get()),
-            "ano_construcao": (AdHelper.to_int(ano) if ano else ""),
-            "caracteristicas": {
-                "lazer_esporte": AdHelper.collect_checked(state.cond_lazer_esporte),
-                "comodidades_servicos": AdHelper.collect_checked(state.cond_comod_serv),
-                "seguranca": AdHelper.collect_checked(state.cond_seguranca),
-                "outras": AdHelper.collect_checked(
-                    state.outras_caracteristicas_condominio
-                ),
-            },
-        }
-
-    @staticmethod
-    def _collect_negociacao(state: FormState) -> dict:
-        return {
-            "tipo": state.tipo_negociacao.get(),
-            "valor_venda": str(state.valor_venda.get()).strip(),
-            "valor_aluguel": str(state.valor_aluguel.get()).strip(),
-            "pagamento_aluguel": state.pagamento_aluguel.get().strip(),
-            "condominio_isento": state.condominio_isento.get() == "sim",
-            "valor_condominio": str(state.valor_condominio.get()).strip(),
-            "iptu_isento": state.iptu_isento.get() == "sim",
-            "valor_iptu": str(state.valor_iptu.get()).strip(),
-            "periodo_iptu": state.periodo_iptu.get(),
-            "modalidade_aluguel": AdHelper.collect_checked(state.modalidade_aluguel),
-        }
-
-    @staticmethod
     def apply_to_state(state: FormState, data: dict) -> None:
         AdFormMapper._populate_detalhes(state, data.get("detalhes", {}))
         AdFormMapper._populate_seo(state, data.get("seo", {}))
         AdFormMapper._populate_perto_de_lugares(
             state, data.get("perto_de_lugares", {})
         )
+        AdFormMapper._populate_instalacoes(state, data.get("instalacoes", {}))
         AdFormMapper._populate_localizacao(state, data.get("localizacao", {}))
         AdFormMapper._populate_imagens(state, data.get("imagens", {}))
+        AdFormMapper._populate_video(
+            state, data.get("video", {}), data.get("imagens", {})
+        )
         AdFormMapper._populate_traducoes(state, data.get("traducoes", {}))
         AdFormMapper._populate_anuncio(state, data.get("anuncio", {}))
         AdFormMapper._populate_imovel(state, data.get("imovel", {}))
@@ -207,6 +171,27 @@ class AdFormMapper:
             fields["distancia_km"].set(str(saved.get("distancia_km", "")))
 
     @staticmethod
+    def _populate_instalacoes(state: FormState, instalacoes: dict) -> None:
+        state.instalacoes_piscina.set(str(instalacoes.get("piscina", "")))
+        state.instalacoes_wifi.set(str(instalacoes.get("wifi", "")))
+        state.instalacoes_elevadores.set(str(instalacoes.get("elevadores", "")))
+        state.instalacoes_fitness.set(str(instalacoes.get("fitness", "")))
+        state.instalacoes_cctv.set(str(instalacoes.get("cctv", "")))
+        state.instalacoes_ar_condicionado.set(str(instalacoes.get("ar_condicionado", "")))
+        state.instalacoes_seguranca.set(str(instalacoes.get("seguranca", "")))
+        state.instalacoes_estacionamento.set(str(instalacoes.get("estacionamento", "")))
+        state.instalacoes_area.set(str(instalacoes.get("area", "")))
+        state.instalacoes_recepcao.set(str(instalacoes.get("recepcao", "")))
+        state.instalacoes_cozinha.set(str(instalacoes.get("cozinha", "")))
+        state.instalacoes_sacadas.set(str(instalacoes.get("sacadas", "")))
+        state.instalacoes_garagem.set(str(instalacoes.get("garagem", "")))
+        state.instalacoes_banheiros.set(str(instalacoes.get("banheiros", "")))
+        state.instalacoes_quartos.set(str(instalacoes.get("quartos", "")))
+        extras = instalacoes.get("extras", [])
+        state.instalacoes_spa.set("SPA" in extras)
+        state.instalacoes_sauna.set("Sauna" in extras)
+
+    @staticmethod
     def _populate_localizacao(state: FormState, localizacao: dict) -> None:
         state.localizacao_cidade.set(localizacao.get("cidade", ""))
         state.localizacao_pais.set(localizacao.get("pais", ""))
@@ -227,7 +212,12 @@ class AdFormMapper:
         state.imagem_3d.set(imagens.get("imagem_3d", ""))
         state.imagens_galeria = list(imagens.get("galeria", []))
         state.documentos = list(imagens.get("documentos", []))
-        state.link_video.set(imagens.get("link_video", ""))
+
+    @staticmethod
+    def _populate_video(state: FormState, video: dict, imagens: dict) -> None:
+        legacy_link = imagens.get("link_video", "")
+        state.video_tipo.set(video.get("tipo", "YouTube" if legacy_link else ""))
+        state.link_video.set(video.get("link", legacy_link))
 
     @staticmethod
     def _populate_traducoes(state: FormState, traducoes: dict) -> None:

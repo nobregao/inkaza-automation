@@ -48,10 +48,12 @@ jobs:
               "helper.ad_form_mapper",
               "helper.ad_helper",
               "helper.system_helper",
+              "service.inkaza_publisher_service",
               "service.property_repository_service",
               "ui.admin.admin_window",
               "ui.admin.form_state",
               "ui.launcher.launcher_window",
+              "ui.publisher.publisher_window",
           )
           for module in modules:
               importlib.import_module(module)
@@ -66,5 +68,6 @@ jobs:
           pyinstaller --noconfirm --clean --onedir \
             --name INKAZA \
             --collect-all ttkbootstrap \
+            --collect-all playwright \
             launcher.pyw
           test -f dist/INKAZA/INKAZA

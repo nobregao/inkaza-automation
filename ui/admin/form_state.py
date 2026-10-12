@@ -11,7 +11,7 @@ class FormState:
         self.detalhes_slug = tk.StringVar(main, value="")
         self.detalhes_descricao = tk.StringVar(main, value="")
         self.detalhes_tipo = tk.StringVar(main, value="venda")
-        self.detalhes_duracao_preco = tk.StringVar(main, value="Mensal")
+        self.detalhes_duracao_preco = tk.StringVar(main, value="Mensalmente")
         self.detalhes_preco = tk.StringVar(main, value="")
 
         self.seo_titulo = tk.StringVar(main, value="")
@@ -27,6 +27,24 @@ class FormState:
             for lugar in LUGARES_PROXIMOS
         }
 
+        self.instalacoes_area = tk.StringVar(main, value="")
+        self.instalacoes_garagem = tk.StringVar(main, value="")
+        self.instalacoes_banheiros = tk.StringVar(main, value="")
+        self.instalacoes_piscina = tk.StringVar(main, value="")
+        self.instalacoes_wifi = tk.StringVar(main, value="")
+        self.instalacoes_elevadores = tk.StringVar(main, value="")
+        self.instalacoes_fitness = tk.StringVar(main, value="")
+        self.instalacoes_cctv = tk.StringVar(main, value="")
+        self.instalacoes_ar_condicionado = tk.StringVar(main, value="")
+        self.instalacoes_seguranca = tk.StringVar(main, value="")
+        self.instalacoes_estacionamento = tk.StringVar(main, value="")
+        self.instalacoes_quartos = tk.StringVar(main, value="")
+        self.instalacoes_recepcao = tk.StringVar(main, value="")
+        self.instalacoes_cozinha = tk.StringVar(main, value="")
+        self.instalacoes_sacadas = tk.StringVar(main, value="")
+        self.instalacoes_spa = tk.BooleanVar(main, value=False)
+        self.instalacoes_sauna = tk.BooleanVar(main, value=False)
+
         self.localizacao_cidade = tk.StringVar(main, value="Fortaleza")
         self.localizacao_pais = tk.StringVar(main, value="Brasil")
         self.localizacao_estado = tk.StringVar(main, value="Ceará")
@@ -37,6 +55,7 @@ class FormState:
         self.imagem_3d = tk.StringVar(main, value="")
         self.imagens_galeria = []
         self.documentos = []
+        self.video_tipo = tk.StringVar(main, value="")
         self.link_video = tk.StringVar(main, value="")
 
         self.traducao_portugues_titulo = tk.StringVar(main, value="")
