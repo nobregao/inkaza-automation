@@ -11,6 +11,7 @@ from domain.catalog_admin import (
     INSTALACOES_POR_CATEGORIA,
 )
 from helper.system_helper import get_bot_user_data_dir
+from service.license_service import LicenseService
 
 
 LOGIN_URL = "https://admin.inkaza.com.br/login"
@@ -161,11 +162,14 @@ class InkazaPublisherService:
         report: Callable[[str, str, PublicationResult], None] | None = None,
         login: str = "",
         password: str = "",
+        license_key: str = "",
     ) -> list[tuple[str, PublicationResult]]:
         """Publica propriedades pendentes usando uma única sessão do navegador."""
+        emit = notify or (lambda _message: None)
+        emit("Validando licença online...")
+        LicenseService().validate(license_key)
         from playwright.sync_api import sync_playwright
 
-        emit = notify or (lambda _message: None)
         emit_report = report or (lambda _property_id, _title, _result: None)
         results: list[tuple[str, PublicationResult]] = []
         self.profile_dir.mkdir(parents=True, exist_ok=True)

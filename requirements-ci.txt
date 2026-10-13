@@ -3,3 +3,4 @@ pillow
 playwright==1.41.2
 pyinstaller
 cryptography
+certifi

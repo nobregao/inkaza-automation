@@ -12,6 +12,7 @@ from helper.system_helper import get_inkaza_data_dir
 class PublisherCredentials:
     login: str = ""
     password: str = ""
+    license_key: str = ""
 
 
 class PublisherCredentialsService:
@@ -43,16 +44,20 @@ class PublisherCredentialsService:
                     id INTEGER PRIMARY KEY CHECK (id = 1),
                     login_token TEXT NOT NULL,
                     password_token TEXT NOT NULL,
+                    license_token TEXT,
                     updated_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
                 )
                 """
             )
+            columns = {row[1] for row in connection.execute("PRAGMA table_info(publisher_credentials)")}
+            if "license_token" not in columns:
+                connection.execute("ALTER TABLE publisher_credentials ADD COLUMN license_token TEXT")
 
     def load(self) -> PublisherCredentials:
         with self._connect() as connection:
             row = connection.execute(
                 """
-                SELECT login_token, password_token
+                SELECT login_token, password_token, license_token
                   FROM publisher_credentials
                  WHERE id = 1
                 """
@@ -65,6 +70,7 @@ class PublisherCredentialsService:
             return PublisherCredentials(
                 login=cipher.decrypt(row[0].encode("ascii")).decode("utf-8"),
                 password=cipher.decrypt(row[1].encode("ascii")).decode("utf-8"),
+                license_key=cipher.decrypt(row[2].encode("ascii")).decode("utf-8") if row[2] is not None else "",
             )
         except (InvalidToken, ValueError, UnicodeDecodeError) as error:
             raise RuntimeError(
@@ -72,9 +78,10 @@ class PublisherCredentialsService:
                 "Informe-as novamente."
             ) from error
 
-    def save(self, login: str, password: str):
+    def save(self, login: str, password: str, license_key: str = ""):
         login = str(login).strip()
         password = str(password)
+        license_key = str(license_key).strip()
         if not login and not password:
             self.clear()
             return
@@ -84,18 +91,20 @@ class PublisherCredentialsService:
         cipher = self._cipher(create_key=True)
         login_token = cipher.encrypt(login.encode("utf-8")).decode("ascii")
         password_token = cipher.encrypt(password.encode("utf-8")).decode("ascii")
+        license_token = cipher.encrypt(license_key.encode("utf-8")).decode("ascii")
         with self._connect() as connection:
             connection.execute(
                 """
                 INSERT INTO publisher_credentials (
-                    id, login_token, password_token, updated_at
-                ) VALUES (1, ?, ?, CURRENT_TIMESTAMP)
+                    id, login_token, password_token, license_token, updated_at
+                ) VALUES (1, ?, ?, ?, CURRENT_TIMESTAMP)
                 ON CONFLICT(id) DO UPDATE SET
                     login_token = excluded.login_token,
                     password_token = excluded.password_token,
+                    license_token = excluded.license_token,
                     updated_at = CURRENT_TIMESTAMP
                 """,
-                (login_token, password_token),
+                (login_token, password_token, license_token),
             )
 
     def clear(self):

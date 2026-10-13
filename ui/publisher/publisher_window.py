@@ -42,10 +42,15 @@ class PublisherWindow(ttk.Window):
         credentials.pack(fill="x", pady=(0, 14))
         credentials.columnconfigure(0, weight=1)
         credentials.columnconfigure(1, weight=1)
+        credentials.columnconfigure(2, weight=1)
         self.login_var = tk.StringVar()
         self.password_var = tk.StringVar()
+        self.license_var = tk.StringVar()
         ttk.Label(credentials, text="LOGIN").grid(row=0, column=0, sticky="w")
         ttk.Label(credentials, text="SENHA").grid(row=0, column=1, sticky="w", padx=(10, 0))
+        ttk.Label(credentials, text="LICENÇA").grid(row=0, column=2, sticky="w", padx=(10, 0))
+        self.license_entry = ttk.Entry(credentials, textvariable=self.license_var)
+        self.license_entry.grid(row=1, column=2, sticky="ew", padx=(10, 0), pady=(6, 0))
         self.login_entry = ttk.Entry(credentials, textvariable=self.login_var)
         self.login_entry.grid(row=1, column=0, sticky="ew", pady=(6, 0))
         self.password_entry = ttk.Entry(
@@ -105,6 +110,7 @@ class PublisherWindow(ttk.Window):
             credentials = self.credentials_service.load()
             self.login_var.set(credentials.login)
             self.password_var.set(credentials.password)
+            self.license_var.set(credentials.license_key)
         except Exception as error:
             messagebox.showwarning(
                 "Credenciais da INKAZA", str(error), parent=self
@@ -121,9 +127,14 @@ class PublisherWindow(ttk.Window):
             self.tree.insert("", "end", iid=row["id"], values=(status, row["title"], row["category"], row["property_type"], row["address"]))
 
     def _start_publish_all(self):
+        license_key = self.license_var.get().strip()
+        if not license_key:
+            messagebox.showerror("Licença", "Informe a licença para publicar.", parent=self)
+            self.license_entry.focus_set()
+            return
         try:
             self.credentials_service.save(
-                self.login_var.get(), self.password_var.get()
+                self.login_var.get(), self.password_var.get(), license_key
             )
             pending_rows = self.repository.list_by_status("NOT_SYNC")
             properties = [
@@ -152,11 +163,11 @@ class PublisherWindow(ttk.Window):
         credentials = (self.login_var.get().strip(), self.password_var.get())
         threading.Thread(
             target=self._run_publish_all,
-            args=(properties, *credentials),
+            args=(properties, *credentials, license_key),
             daemon=True,
         ).start()
 
-    def _run_publish_all(self, properties, login, password):
+    def _run_publish_all(self, properties, login, password, license_key):
         try:
             results = self.publisher.publish_all(
                 properties,
@@ -164,6 +175,7 @@ class PublisherWindow(ttk.Window):
                 report=self._handle_publication_result,
                 login=login,
                 password=password,
+                license_key=license_key,
             )
             published = sum(result.published for _property_id, result in results)
             failed = len(results) - published

@@ -100,3 +100,33 @@ na pré-release criada na seção **Releases** do repositório.
 Esta primeira versão não possui assinatura comercial. No macOS, pode ser
 necessário clicar com o botão direito no aplicativo e selecionar **Abrir**. No
 Windows, o SmartScreen pode solicitar confirmação para executar o aplicativo.
+
+### Licença para publicação
+
+Na tela de publicação, informe a **Licença** ao lado da senha. Antes de abrir o
+navegador, cada tentativa de publicação consulta
+`https://raw.githubusercontent.com/nobregao/inkaza-license/refs/heads/main/license.json`.
+O arquivo deve conter um objeto por chave de licença, neste formato:
+
+```json
+{
+  "CHAVE-DO-CLIENTE": {
+    "active": true,
+    "expires_at": "2026-10-22"
+  }
+}
+```
+
+A publicação exige uma chave existente, `active` igual a `true` e uma data
+`expires_at` válida (`AAAA-MM-DD`), inclusiva até o fim do dia no horário de
+Recife (UTC-3). Licenças ausentes, inativas, vencidas, respostas inválidas ou
+falhas de conexão bloqueiam a publicação. A consulta tem timeout de 15 segundos
+e ocorre em segundo plano. Ao iniciar a publicação, a licença é salva criptografada
+na mesma tabela e com a mesma chave de login e senha, sendo carregada ao reabrir
+a tela. O armazenamento local não substitui a validação online a cada publicação.
+
+Para desativar uma licença, altere `active` para `false` no arquivo remoto;
+a alteração será verificada na próxima tentativa, sujeita à propagação do
+GitHub. Um lote já iniciado não é interrompido. Como o arquivo é público,
+suas chaves também são públicas: esta verificação não autentica a identidade
+do cliente nem impede alterações no código de uma instalação sob seu controle.
